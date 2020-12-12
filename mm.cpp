@@ -1,158 +1,213 @@
 #include <iostream>
+#include <string>
+#include <cmath>
 #include <cstdlib>
-#include <ctime>
+#include <fstream>
 #include <vector>
 
-/// you can add other headers as needed
-/// but only headers from the standard library
-/// and not the algorithm header
+bool game_over(const std::vector<int>& v);
+bool proc_num(std::vector<int>& v, int bi, int ei);
+void print(std::vector<int>& v);
+void rotate_anti_clock(std::vector<int>& v);
+int twod_to_oned(int row, int col, int rowlen);
+void randomGen(std::vector<int>&v);
+void up(std::vector<int>&v);
+void down(std::vector<int>&v);
+void left(std::vector<int>&v);
+void right(std::vector<int>&v);
+void merge(std::vector<int>& v);
 
-/// do not use using namespace std
-
-/// functions for random number generation, do not alter the declarations
-void set_random_seed();
-int randn(int n);
-
-/// you can define and use additional functions and structs,
-/// add here the declarations for any other functions 
-/// and/or structs you wish to define and use 
-/// (the implementation for functions that don't belong to a struct
-/// should be added after the main)
-
-/// this is the struct definition for the code maker 
-/// do not alter the name
-struct mm_code_maker{
-    
-    /// this member function sets the values for the member data
-    /// representing the length of the code
-    /// and the number of symbols (the symbols will be 0 to i_num - 1)
-    /// (this should be a constructor in proper OOP but ok)
-    /// do not alter this function
-    void init(int i_length, int i_num){
-        length = i_length;
-        num = i_num;
+void print(std::vector<int>& v){
+    int side = sqrt(v.size());
+    for (int j = 0; j < side; j ++) {
+        for (int i = 0; i < side; i++) {
+            int index = twod_to_oned(j,i,side);
+            int length = std::to_string(v[index]).length();
+            std::cout << v[index] << std::string(7 - length, ' ');
+        }
+        std::cout << std::endl;
     }
-    
-    /// this member function generates a random sequence based 
-    /// on the length and num parameters stored as member data
-    /// do not alter this function
-    void generate_sequence(){
-        for(int i = 0; i < length; i++){
-            sequence.push_back(randn(num));
+    std::cout << std::endl;
+}
+
+bool proc_num(std::vector<int>& v, int bi, int ei){
+    std::vector<int> result(v);
+    std::vector<int> original(v);
+    std::vector<int> transform;
+    std::vector<int> numbers;
+    for (int i = bi; i < ei; i++){
+        if (v[i] != 0) {
+            numbers.push_back(v[i]);
+        }
+        result[i] = 0;
+    }
+    for (int i = 0; i < numbers.size(); i++){
+        if ( i == (numbers.size()-1)){
+            transform.push_back(numbers[i]);
+        }
+        else if (numbers[i] == numbers[i+1]){
+            transform.push_back(numbers[i]*2);
+            i++;
+            continue;
+        } else {
+            transform.push_back(numbers[i]);
         }
     }
-    
-    /// do not alter the function interface (name, parameter list, void return)
-    void give_feedback(const std::vector<int>& attempt, int& black_hits, int& white_hits){
-        black_hits = 0, white_hits = 0;
-        //initialises that there are 'num' copies of 0 colours
-        std::vector<int> colour_freq(num, 0);
-        //initialises that there are 'length' copies of FALSE
-        std::vector<bool> p(length, 0);
-       
-        //the potential number of colours presents increases as the length of the sequence increases
-        //black hits: for every time an attempt's element equates sequence's element
-            //subtract that potential element from the total number of potential colour pegs
-            //so that it would not be included in the white_pegs as it is in the correct element
-            //set that peg's element to TRUE
-        for(int i = 0; i < length; i++){
-            colour_freq[sequence[i]]++;
-            if( attempt[i] == sequence[i] ){
-                black_hits++;
-                colour_freq[attempt[i]]--;
-                p[i] = 1;
+    for (int i = 0; i < transform.size(); i++) {
+        result[bi+i] = transform[i];
+    }
+    v = result;
+    return (result != original);
+}
+
+void rotate_anti_clock(std::vector<int>& v) {
+    std::vector<int> temp (v.size(),-1);
+    int side = sqrt(v.size());
+    for (int i = 0; i < side; i ++) {
+        for (int j = 0; j < side; j++) {
+            temp[twod_to_oned(-i + side - 1, j, side)] = v[twod_to_oned(j, i, side)];
+        }
+    }
+    v = temp;
+}
+
+bool game_over(const std::vector<int>& v){
+    for (int i = 0; i < v.size(); i++) {
+        if (v[i] == 0) {
+            return false;
+        }
+    }
+    std::vector<int>rotated(v);
+    rotate_anti_clock(rotated);
+    int side = sqrt(v.size());
+    for (int j = 0; j < side; j ++) {
+        for (int i = 0; i < (side - 1); i++) {
+            int index1 = twod_to_oned(j, i, side);
+            int index2 = twod_to_oned(j, i+1, side);
+            if (v[index1] == v[index2] || rotated[index1] == rotated[index2]){
+                return false;
             }
         }
-        
-        //white hits: if that element is NOT a black peg (p[i]=0) AND there are remaining coloured pegs
-        for(int i = 0; i < length; i++){
-            if( !p[i] && colour_freq[attempt[i]] > 0 ){
-                white_hits++;
-                colour_freq[attempt[i]]--;
-            }
+    }
+    return true;
+}
+
+int twod_to_oned(int row, int col, int rowlen){
+    return row*rowlen+col;
+}
+
+void randomGen(std::vector<int>&v){
+    bool zeroPresent=false;
+    for(int i=0; i<v.size(); i++){
+        if(v[i]==0){
+            zeroPresent=true;
         }
     }
-    
-    
-    
-    
-    
-    /// member data holding the sequence generated by generate_sequence
-    /// do not alter this
-    std::vector<int> sequence;
-    
-    /// member data holding the values for length of code and number of symbols
-    /// do not alter these
-    int length;
-    int num;
-    
-    /// do not add any other member data, 
-    /// in particular note that any variables needed for function give_feedback
-    /// need to be declared within give_feedback 
-    /// (they are not member data of the struct)
-    
-    /// you may add other member functions if needed
-};
+    if(zeroPresent){
+        int randomIndex = rand() % v.size();
+        while(v[randomIndex] != 0 ){
+            randomIndex = rand() % v.size();
+        }
+        v[randomIndex] = 2;
+    }
+}
 
+void merge(std::vector<int>& v){
+    int side = sqrt(v.size());
+    bool change = false;
+    for(int i=0; i<v.size()-side+1; i=i+side){
+        
+        change = proc_num(v, i, i + side) || change;
+    }
+    if (change){
+        randomGen(v);
+    }
+}
 
-/// this is the struct definition for the solver, do not alter the name
-struct mm_solver{
-    
-    /// this member function sets the values for the member data
-    /// representing the lenght of the code
-    /// and the number of symbols (the symbols will be 0 to i_num - 1)
-    /// (this should be a constructor in proper OOP but ok)
-    /// do not alter the function interface (name, parameter list, void return)
-    void init(int i_length, int i_num){
-        length = i_length;
-        num = i_num;
-        
-        /// you can include additional implementation lines here if needed
-        
-    }
-    
-    /// this member function creates an attempt to find the right code
-    /// (see the other examples provided for clarifications)
-    /// do not alter the function interface (name, parameter list, void return)
-    void create_attempt(std::vector<int>& attempt){
-        /// write your implementation here
-    }
-    
-    /// this member function acquires the feedback about a certain attempt
-    /// (see the other examples provided for clarifications)
-    /// do not alter the function interface (name, parameter list, void return)
-    void learn(std::vector<int>& attempt, int black_hits, int white_hits){
-        /// write your implementation here
-    }
-    
-    int length;
-    int num;
-    
-    /// you may add other member functions and member data as needed
-    /// (keep in mind the distinction between member function variables
-    /// and member data of the struct)
-    
-};
+void left(std::vector<int>& v){
+    merge(v);
+}
+void up(std::vector<int>& v){
+    rotate_anti_clock(v);
+    merge(v);
+    rotate_anti_clock(v);
+    rotate_anti_clock(v);
+    rotate_anti_clock(v);
+}
+void right(std::vector<int>& v){
+    rotate_anti_clock(v);
+    rotate_anti_clock(v);
+    merge(v);
+    rotate_anti_clock(v);
+    rotate_anti_clock(v);
+}
+void down(std::vector<int>& v){
+    rotate_anti_clock(v);
+    rotate_anti_clock(v);
+    rotate_anti_clock(v);
+    merge(v);
+    rotate_anti_clock(v);
+}
+
 
 int main(){
-    /// write the code for the main here in order to test your functions
-    /// the main is not relevant for this assignment and we will remove it
-    /// from the submissions during the marking
+
+    std::vector<int> s;
+    std::vector<int> temp;
+    std::string filename;
+    
+    std::cout << "enter initial configuration file name:" << std::endl;
+    std::cout<<std::endl;
+    std::cin >> filename;
+    std::cout<<std::endl;
+    
+    std::ifstream infile;
+    infile.open(filename.c_str());
+
+    if(infile.is_open()) {
+        int tmp;
+        while (infile >> tmp) {
+            s.push_back(tmp);
+        }
+    } else {
+        std::cout << "file not found, using default start configuration" << std::endl;
+        for (int i = 0; i < 15; i++) {
+            s.push_back(0);
+        }
+        s.push_back(2);
+    }
+
+    int side = std::sqrt(s.size());
+    for(int i = 0; i < side; i++){
+        for(int j = 0; j < side; j++){
+            std::cout << s[twod_to_oned(i,j,side)] << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    char input;
+    while(game_over(s) == false){
+        temp=s;
+        std::cin >> input;
+        std::cout<<std::endl;
+        
+        if(input == 'a'){
+            left(s);
+        }
+        else if(input == 'w'){
+            up(s);
+        }
+        else if(input == 'd'){
+            right(s);
+        }
+        else if(input == 's'){
+            down(s);
+        }
+        if  (s != temp) {
+            print(s);
+        }
+    }
+    std::cout<<"game over"<<std::endl;
+
     return 0;
 }
-
-/// not a great implementation for set_random_seed and for randn;
-/// if you are trying to get better results you may want to change 
-/// the implementation using C++11 features, see for instance
-/// https://isocpp.org/files/papers/n3551.pdf
-/// but don't change the interface/declaration of the functions
-
-void set_random_seed(){
-    std::srand(std::time(0));
-}
-
-int randn(int n){
-    return std::rand() % n;
-}
-
-/// add here the implementation for any other functions you wish to define and use
